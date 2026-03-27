@@ -124,13 +124,21 @@ def _write_anvil_ini(instance_dir: Path, package: MigrationPackage, game_path: s
         ini.write(f)
 
 
+def _best_profile(package: MigrationPackage) -> list[dict] | None:
+    """Return the mod list from the profile with the most mods."""
+    if not package.profiles:
+        return None
+    best = max(package.profiles, key=lambda p: len(p.mods))
+    return best.mods if best.mods else None
+
+
 def _write_modlist(profiles_dir: Path, package: MigrationPackage):
     """Write global modlist.txt (Anvil v2 format)."""
     lines = ["# Managed by Anvil Organizer v2"]
 
-    # Use first profile's mod order, or fallback to package.mods order
-    if package.profiles:
-        for entry in package.profiles[0].mods:
+    profile_mods = _best_profile(package)
+    if profile_mods:
+        for entry in profile_mods:
             lines.append(f"+{entry['name']}")
     else:
         for mod in package.mods:
@@ -144,8 +152,9 @@ def _write_active_mods(profile_dir: Path, package: MigrationPackage):
     """Write active_mods.json for a profile."""
     active = []
 
-    if package.profiles:
-        for entry in package.profiles[0].mods:
+    profile_mods = _best_profile(package)
+    if profile_mods:
+        for entry in profile_mods:
             if entry.get("enabled", True):
                 active.append(entry["name"])
     else:

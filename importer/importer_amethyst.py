@@ -133,6 +133,14 @@ def import_to_amethyst(
     return target_dir
 
 
+def _best_profile(package: MigrationPackage) -> list[dict] | None:
+    """Return the mod list from the profile with the most mods."""
+    if not package.profiles:
+        return None
+    best = max(package.profiles, key=lambda p: len(p.mods))
+    return best.mods if best.mods else None
+
+
 def _write_modlist(profile_dir: Path, package: MigrationPackage):
     """Write modlist.txt in Amethyst format.
 
@@ -147,8 +155,9 @@ def _write_modlist(profile_dir: Path, package: MigrationPackage):
     """
     lines = []
 
-    if package.profiles:
-        for entry in package.profiles[0].mods:
+    profile_mods = _best_profile(package)
+    if profile_mods:
+        for entry in profile_mods:
             name = entry["name"]
             is_sep = name.endswith("_separator")
             if is_sep:

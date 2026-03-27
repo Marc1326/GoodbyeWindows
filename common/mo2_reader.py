@@ -245,10 +245,20 @@ def scan_instance(instance_path: Path) -> MO2Instance | None:
 
         instance.mod_meta[mod_dir.name] = meta
 
-    # Apply enabled state from default profile
-    if instance.profiles:
-        default = instance.profiles[0]
-        for mod_name, enabled in default.mods:
+    # Apply enabled state from the active profile
+    # Priority: selected_profile from INI → profile with most mods → first profile
+    active_profile = None
+    selected_name = ini_data.get("selected_profile", "")
+    if selected_name:
+        for p in instance.profiles:
+            if p.name == selected_name:
+                active_profile = p
+                break
+    if active_profile is None and instance.profiles:
+        active_profile = max(instance.profiles, key=lambda p: len(p.mods))
+
+    if active_profile is not None:
+        for mod_name, enabled in active_profile.mods:
             if mod_name in instance.mod_meta:
                 instance.mod_meta[mod_name].enabled = enabled
 
