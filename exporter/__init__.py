@@ -1,0 +1,1 @@
+# GoodbyeWindows — Windows Exporter
