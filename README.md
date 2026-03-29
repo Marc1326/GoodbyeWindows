@@ -73,7 +73,7 @@ Choose one of three methods:
 Run the GoodbyeWindows Importer on your Linux PC. It reads the migration data and imports into your chosen mod manager:
 
 - **Anvil Organizer** — Creates instance with `.anvil.ini`, `modlist.txt` (v2 format), `active_mods.json`, and `meta.ini` per mod
-- **Amethyst Mod Manager** — Creates profile with `modlist.txt`, `profile_state.json`, and Amethyst-compatible `meta.ini`
+
 
 ## .gbw Format
 
