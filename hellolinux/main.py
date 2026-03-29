@@ -364,6 +364,11 @@ class WelcomePage(QWizardPage):
         self.lang_combo = QComboBox()
         self.lang_combo.addItem("English", "en")
         self.lang_combo.addItem("Deutsch", "de")
+        self.lang_combo.addItem("Español", "es")
+        self.lang_combo.addItem("Français", "fr")
+        self.lang_combo.addItem("Italiano", "it")
+        self.lang_combo.addItem("Português", "pt")
+        self.lang_combo.addItem("Русский", "ru")
         idx = self.lang_combo.findData(detect_locale())
         if idx >= 0:
             self.lang_combo.setCurrentIndex(idx)

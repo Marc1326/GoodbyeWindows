@@ -10,10 +10,11 @@ _locales_dir = Path(__file__).parent / "locales"
 
 
 def detect_locale() -> str:
-    """Detect system locale and return 'de' or 'en'."""
+    """Detect system locale and return matching locale code."""
     sys_locale = locale.getdefaultlocale()[0] or ""
-    if sys_locale.startswith("de"):
-        return "de"
+    for code in ("de", "fr", "es", "it", "pt", "ru"):
+        if sys_locale.startswith(code):
+            return code
     return "en"
 
 
