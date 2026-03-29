@@ -997,7 +997,7 @@ class ConfigPage(QWizardPage):
                 edit.setText(game.game_path)
             row.addWidget(edit)
             btn = QPushButton(tr("browse"))
-            btn.setFixedWidth(100)
+            btn.setMinimumWidth(130)
             # Capture game reference for closure
             btn.clicked.connect(
                 lambda checked, e=edit: self._browse_game_path(e)
