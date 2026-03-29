@@ -149,5 +149,23 @@
     "import_done_title": "Import Complete!",
     "import_done_summary": "{imported} mods imported, {missing} mods need manual download.",
     "import_done_nexus_links": "Nexus links for missing mods have been copied to clipboard.",
-    "import_done_open_manager": "Open {manager} now?"
+    "import_done_open_manager": "Open {manager} now?",
+
+    "hl_connect": "Connect",
+    "hl_scan_ntfs": "Scan for NTFS partitions",
+    "hl_no_gbw_found": "No migration data found.",
+    "hl_games_found": "{count} game(s) found",
+    "hl_preview_title": "Import Preview",
+    "hl_preview_desc": "These games were found in your source. Review before importing.",
+    "hl_has_files": "Has files",
+    "hl_needs_download": "Mod files not included — mods will need to be re-downloaded on Linux.",
+    "hl_metadata_only": "{count} mods without Nexus ID cannot be re-downloaded automatically.",
+    "hl_config_desc": "Choose your target mod manager and set game paths.",
+    "hl_target_manager": "Target Mod Manager",
+    "hl_game_config": "Game Paths",
+    "hl_game_path_hint": "Set the Linux game installation path for each game. You can leave this empty and configure it later in the mod manager.",
+    "hl_framework_hint": "Framework mods (SKSE, Script Extender, etc.) will be detected and handled automatically by Anvil.",
+    "hl_multi_game_hint": "{count} games found in export",
+    "hl_framework_done_hint": "Framework mods were imported normally. Anvil will detect and manage them automatically when you open the instance.",
+    "hl_ip_pin_required": "IP address and PIN are required."
 }

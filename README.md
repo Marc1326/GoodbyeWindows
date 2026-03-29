@@ -138,7 +138,7 @@ GoodbyeWindows/
 │   ├── scanner.py       ← MO2 instance finder
 │   ├── exporter.py      ← Export logic
 │   └── server.py        ← HTTP server for LAN transfer
-├── importer/            ← Linux tool
+├── hellolinux/          ← Linux tool (HelloLinux Importer)
 │   ├── main.py          ← PySide6 QWizard GUI
 │   ├── detector.py      ← NTFS/USB detection
 │   ├── client.py        ← HTTP client for LAN transfer

@@ -30,7 +30,7 @@ python -m PyInstaller \
     --name=GoodbyeWindows-Importer \
     --add-data="common/locales:common/locales" \
     --distpath="$BUILD_DIR/usr/bin" \
-    importer/main.py
+    hellolinux/main.py
 
 # Create AppImage structure
 echo "--- Creating AppImage structure ---"

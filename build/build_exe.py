@@ -2,7 +2,7 @@
 
 Usage:
     python build/build_exe.py exporter
-    python build/build_exe.py importer
+    python build/build_exe.py hellolinux
 """
 
 import subprocess
@@ -16,9 +16,9 @@ def build(target: str):
     if target == "exporter":
         entry = root / "exporter" / "main.py"
         name = "GoodbyeWindows-Exporter"
-    elif target == "importer":
-        entry = root / "importer" / "main.py"
-        name = "GoodbyeWindows-Importer"
+    elif target == "hellolinux":
+        entry = root / "hellolinux" / "main.py"
+        name = "HelloLinux-Importer"
     else:
         print(f"Unknown target: {target}")
         sys.exit(1)
@@ -46,6 +46,6 @@ def build(target: str):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python build_exe.py [exporter|importer]")
+        print("Usage: python build_exe.py [exporter|hellolinux]")
         sys.exit(1)
     build(sys.argv[1])

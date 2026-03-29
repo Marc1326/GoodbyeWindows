@@ -149,5 +149,23 @@
     "import_done_title": "Import abgeschlossen!",
     "import_done_summary": "{imported} Mods importiert, {missing} Mods m\u00fcssen manuell heruntergeladen werden.",
     "import_done_nexus_links": "Nexus-Links f\u00fcr fehlende Mods wurden in die Zwischenablage kopiert.",
-    "import_done_open_manager": "{manager} jetzt \u00f6ffnen?"
+    "import_done_open_manager": "{manager} jetzt \u00f6ffnen?",
+
+    "hl_connect": "Verbinden",
+    "hl_scan_ntfs": "Nach NTFS-Partitionen suchen",
+    "hl_no_gbw_found": "Keine Migrationsdaten gefunden.",
+    "hl_games_found": "{count} Spiel(e) gefunden",
+    "hl_preview_title": "Import-Vorschau",
+    "hl_preview_desc": "Diese Spiele wurden in deiner Quelle gefunden. Pr\u00fcfe sie vor dem Import.",
+    "hl_has_files": "Dateien vorhanden",
+    "hl_needs_download": "Mod-Dateien nicht enthalten \u2014 Mods m\u00fcssen unter Linux neu heruntergeladen werden.",
+    "hl_metadata_only": "{count} Mods ohne Nexus-ID k\u00f6nnen nicht automatisch heruntergeladen werden.",
+    "hl_config_desc": "W\u00e4hle deinen Ziel-Mod-Manager und setze die Spiel-Pfade.",
+    "hl_target_manager": "Ziel-Mod-Manager",
+    "hl_game_config": "Spiel-Pfade",
+    "hl_game_path_hint": "Setze den Linux-Installationspfad f\u00fcr jedes Spiel. Du kannst das auch leer lassen und sp\u00e4ter im Mod-Manager konfigurieren.",
+    "hl_framework_hint": "Framework-Mods (SKSE, Script Extender, etc.) werden von Anvil automatisch erkannt und behandelt.",
+    "hl_multi_game_hint": "{count} Spiele im Export gefunden",
+    "hl_framework_done_hint": "Framework-Mods wurden normal importiert. Anvil erkennt und verwaltet sie automatisch, wenn du die Instanz \u00f6ffnest.",
+    "hl_ip_pin_required": "IP-Adresse und PIN werden ben\u00f6tigt."
 }

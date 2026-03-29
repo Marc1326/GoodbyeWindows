@@ -212,6 +212,17 @@ def save_gbw(package: MigrationPackage, output_path: Path) -> Path:
     return output_path
 
 
+def peek_gbw_manifest(gbw_path: Path) -> MigrationManifest:
+    """Read only the manifest from a .gbw file (fast, no mod data loaded)."""
+    gbw_path = Path(gbw_path)
+    with zipfile.ZipFile(gbw_path, "r") as zf:
+        manifest_data = json.loads(zf.read("manifest.json"))
+        return MigrationManifest(**{
+            k: v for k, v in manifest_data.items()
+            if k in MigrationManifest.__dataclass_fields__
+        })
+
+
 def load_gbw(gbw_path: Path) -> MigrationPackage:
     """Load a migration package from a .gbw file."""
     gbw_path = Path(gbw_path)
