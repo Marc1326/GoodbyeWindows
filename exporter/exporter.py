@@ -72,6 +72,26 @@ class ExportableGame:
         return d is not None and d.is_dir()
 
     @property
+    def instance_path(self) -> str:
+        """Short display path of the source instance."""
+        home = str(Path.home())
+        if self._mo2_instance is not None:
+            p = str(self._mo2_instance.path)
+        elif self._vortex_game is not None:
+            p = str(getattr(self._vortex_game, 'staging_folder', ''))
+        else:
+            return ""
+        if p.startswith(home):
+            p = "~" + p[len(home):]
+        # Shorten Steam Proton paths
+        proton_marker = "/.local/share/Steam/steamapps/compatdata/"
+        if proton_marker in p or "/.steam/steam/steamapps/compatdata/" in p:
+            # Extract the last directory name (game instance name)
+            last_part = Path(p).name
+            return f"Steam/Proton: {last_part}"
+        return p
+
+    @property
     def safe_folder_name(self) -> str:
         """Folder name for export: 'Game Name [Source]'."""
         return f"{safe_name(self.game_name)} [{self.source}]"

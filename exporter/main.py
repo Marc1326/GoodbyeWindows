@@ -541,8 +541,23 @@ class GameSelectPage(QWizardPage):
             hl.setContentsMargins(0, 0, 0, 0)
             self.table.setCellWidget(row, 0, widget)
 
-            # Game name
-            self.table.setItem(row, 1, QTableWidgetItem(game.game_name))
+            # Game name + instance path
+            if game.instance_path:
+                self.table.setRowHeight(row, 46)
+                name_widget = QWidget()
+                name_widget.setStyleSheet("background: transparent;")
+                name_layout = QVBoxLayout(name_widget)
+                name_layout.setContentsMargins(6, 3, 6, 3)
+                name_layout.setSpacing(0)
+                game_label = QLabel(game.game_name)
+                game_label.setStyleSheet("color: #cdd6f4; font-size: 13px; background: transparent;")
+                name_layout.addWidget(game_label)
+                path_label = QLabel(game.instance_path)
+                path_label.setStyleSheet("color: #6c7086; font-size: 10px; background: transparent;")
+                name_layout.addWidget(path_label)
+                self.table.setCellWidget(row, 1, name_widget)
+            else:
+                self.table.setItem(row, 1, QTableWidgetItem(game.game_name))
             # Source
             self.table.setItem(row, 2, QTableWidgetItem(game.source))
             # Mods
