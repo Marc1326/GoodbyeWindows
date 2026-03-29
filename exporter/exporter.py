@@ -165,11 +165,22 @@ def export_games(
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Resolve duplicate folder names
+    folder_names: dict[int, str] = {}
+    name_count: dict[str, int] = {}
+    for i, game in enumerate(games):
+        base = game.safe_folder_name
+        name_count[base] = name_count.get(base, 0) + 1
+        if name_count[base] == 1:
+            folder_names[i] = base
+        else:
+            folder_names[i] = f"{base} ({name_count[base]})"
+
     total_bytes = sum(g.total_size_bytes for g in games) if include_mods else 0
     copied_bytes = 0
 
-    for game in games:
-        game_dir = output_dir / game.safe_folder_name
+    for i, game in enumerate(games):
+        game_dir = output_dir / folder_names[i]
         game_dir.mkdir(parents=True, exist_ok=True)
 
         # Save metadata (.gbw)

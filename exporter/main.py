@@ -25,7 +25,6 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QLineEdit,
-    QMessageBox,
     QProgressBar,
     QPushButton,
     QRadioButton,
@@ -283,25 +282,25 @@ class WelcomePage(QWizardPage):
         title.setAlignment(Qt.AlignCenter)
         layout.addWidget(title)
 
-        subtitle = QLabel(tr("app_subtitle"))
-        subtitle.setProperty("class", "subtitle")
-        subtitle.setAlignment(Qt.AlignCenter)
-        layout.addWidget(subtitle)
+        self.subtitle_label = QLabel(tr("app_subtitle"))
+        self.subtitle_label.setProperty("class", "subtitle")
+        self.subtitle_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.subtitle_label)
 
         layout.addSpacing(8)
 
-        desc = QLabel(tr("exporter_welcome"))
-        desc.setAlignment(Qt.AlignCenter)
-        desc.setWordWrap(True)
-        layout.addWidget(desc)
+        self.desc_label = QLabel(tr("exporter_welcome"))
+        self.desc_label.setAlignment(Qt.AlignCenter)
+        self.desc_label.setWordWrap(True)
+        layout.addWidget(self.desc_label)
 
         layout.addStretch(1)
 
         # Language selector
         lang_box = QHBoxLayout()
         lang_box.addStretch()
-        lang_label = QLabel(tr("language") + ":")
-        lang_box.addWidget(lang_label)
+        self.lang_label = QLabel(tr("language") + ":")
+        lang_box.addWidget(self.lang_label)
         self.lang_combo = QComboBox()
         self.lang_combo.addItem("English", "en")
         self.lang_combo.addItem("Deutsch", "de")
@@ -318,12 +317,14 @@ class WelcomePage(QWizardPage):
     def _on_lang(self):
         loc = self.lang_combo.currentData()
         set_locale(loc)
-        QMessageBox.information(
-            self, tr("info"),
-            "Language will be applied on next start."
-            if loc == "en" else
-            "Sprache wird beim nächsten Start angewendet.",
-        )
+        wizard = self.wizard()
+        if wizard and hasattr(wizard, "retranslateAll"):
+            wizard.retranslateAll()
+
+    def retranslateUi(self):
+        self.subtitle_label.setText(tr("app_subtitle"))
+        self.desc_label.setText(tr("exporter_welcome"))
+        self.lang_label.setText(tr("language") + ":")
 
 
 # ---------------------------------------------------------------------------
@@ -343,8 +344,8 @@ class SourcePage(QWizardPage):
         layout.setContentsMargins(30, 20, 30, 20)
 
         # Source radio buttons
-        source_group = QGroupBox(tr("source_select_title"))
-        source_layout = QVBoxLayout(source_group)
+        self.source_group = QGroupBox(tr("source_select_title"))
+        source_layout = QVBoxLayout(self.source_group)
 
         self.btn_group = QButtonGroup(self)
 
@@ -352,30 +353,30 @@ class SourcePage(QWizardPage):
         self.radio_mo2.setChecked(True)
         self.btn_group.addButton(self.radio_mo2, 0)
         source_layout.addWidget(self.radio_mo2)
-        d1 = QLabel(tr("source_mo2_desc"))
-        d1.setWordWrap(True)
-        d1.setStyleSheet("margin-left: 28px; color: #a6adc8; font-size: 11px;")
-        source_layout.addWidget(d1)
+        self.desc_mo2 = QLabel(tr("source_mo2_desc"))
+        self.desc_mo2.setWordWrap(True)
+        self.desc_mo2.setStyleSheet("margin-left: 28px; color: #a6adc8; font-size: 11px;")
+        source_layout.addWidget(self.desc_mo2)
         source_layout.addSpacing(6)
 
         self.radio_vortex = QRadioButton(tr("source_vortex"))
         self.btn_group.addButton(self.radio_vortex, 1)
         source_layout.addWidget(self.radio_vortex)
-        d2 = QLabel(tr("source_vortex_desc"))
-        d2.setWordWrap(True)
-        d2.setStyleSheet("margin-left: 28px; color: #a6adc8; font-size: 11px;")
-        source_layout.addWidget(d2)
+        self.desc_vortex = QLabel(tr("source_vortex_desc"))
+        self.desc_vortex.setWordWrap(True)
+        self.desc_vortex.setStyleSheet("margin-left: 28px; color: #a6adc8; font-size: 11px;")
+        source_layout.addWidget(self.desc_vortex)
         source_layout.addSpacing(6)
 
         self.radio_both = QRadioButton(tr("source_both"))
         self.btn_group.addButton(self.radio_both, 2)
         source_layout.addWidget(self.radio_both)
-        d3 = QLabel(tr("source_both_desc"))
-        d3.setWordWrap(True)
-        d3.setStyleSheet("margin-left: 28px; color: #a6adc8; font-size: 11px;")
-        source_layout.addWidget(d3)
+        self.desc_both = QLabel(tr("source_both_desc"))
+        self.desc_both.setWordWrap(True)
+        self.desc_both.setStyleSheet("margin-left: 28px; color: #a6adc8; font-size: 11px;")
+        source_layout.addWidget(self.desc_both)
 
-        layout.addWidget(source_group)
+        layout.addWidget(self.source_group)
         layout.addSpacing(12)
 
         # Scan status
@@ -388,6 +389,17 @@ class SourcePage(QWizardPage):
         layout.addWidget(self.result_label)
 
         layout.addStretch()
+
+    def retranslateUi(self):
+        self.setTitle(tr("source_select_title"))
+        self.setSubTitle(tr("source_select_desc"))
+        self.source_group.setTitle(tr("source_select_title"))
+        self.radio_mo2.setText(tr("source_mo2"))
+        self.desc_mo2.setText(tr("source_mo2_desc"))
+        self.radio_vortex.setText(tr("source_vortex"))
+        self.desc_vortex.setText(tr("source_vortex_desc"))
+        self.radio_both.setText(tr("source_both"))
+        self.desc_both.setText(tr("source_both_desc"))
 
     def initializePage(self):
         self._start_scan()
@@ -481,12 +493,12 @@ class GameSelectPage(QWizardPage):
 
         # Buttons + total
         bottom = QHBoxLayout()
-        btn_all = QPushButton(tr("game_select_all"))
-        btn_all.clicked.connect(lambda: self._set_all(True))
-        bottom.addWidget(btn_all)
-        btn_none = QPushButton(tr("game_deselect_all"))
-        btn_none.clicked.connect(lambda: self._set_all(False))
-        bottom.addWidget(btn_none)
+        self.btn_all = QPushButton(tr("game_select_all"))
+        self.btn_all.clicked.connect(lambda: self._set_all(True))
+        bottom.addWidget(self.btn_all)
+        self.btn_none = QPushButton(tr("game_deselect_all"))
+        self.btn_none.clicked.connect(lambda: self._set_all(False))
+        bottom.addWidget(self.btn_none)
         bottom.addStretch()
         self.total_label = QLabel("")
         self.total_label.setProperty("class", "info-value")
@@ -501,6 +513,15 @@ class GameSelectPage(QWizardPage):
         layout.addWidget(self.warn_label)
 
         self._checkboxes: list[QCheckBox] = []
+
+    def retranslateUi(self):
+        self.setTitle(tr("game_select_title"))
+        self.setSubTitle(tr("game_select_desc"))
+        self.table.setHorizontalHeaderLabels([
+            "", tr("scan_game"), tr("source_label"), tr("scan_mods"), tr("game_size"),
+        ])
+        self.btn_all.setText(tr("game_select_all"))
+        self.btn_none.setText(tr("game_deselect_all"))
 
     def initializePage(self):
         games = self.source_page.games
@@ -592,8 +613,8 @@ class ExportOptionsPage(QWizardPage):
         layout.setContentsMargins(30, 20, 30, 20)
 
         # Mode selection
-        mode_group = QGroupBox(tr("export_mode_title"))
-        mode_layout = QVBoxLayout(mode_group)
+        self.mode_group = QGroupBox(tr("export_mode_title"))
+        mode_layout = QVBoxLayout(self.mode_group)
 
         self.btn_group = QButtonGroup(self)
 
@@ -601,10 +622,10 @@ class ExportOptionsPage(QWizardPage):
         self.radio_meta = QRadioButton(tr("export_mode_metadata"))
         self.btn_group.addButton(self.radio_meta, 0)
         mode_layout.addWidget(self.radio_meta)
-        d1 = QLabel(tr("export_mode_metadata_desc"))
-        d1.setWordWrap(True)
-        d1.setStyleSheet("margin-left: 28px; color: #a6adc8; font-size: 11px;")
-        mode_layout.addWidget(d1)
+        self.desc_meta = QLabel(tr("export_mode_metadata_desc"))
+        self.desc_meta.setWordWrap(True)
+        self.desc_meta.setStyleSheet("margin-left: 28px; color: #a6adc8; font-size: 11px;")
+        mode_layout.addWidget(self.desc_meta)
 
         self.size_meta = QLabel("")
         self.size_meta.setStyleSheet("margin-left: 28px; font-weight: bold;")
@@ -617,16 +638,16 @@ class ExportOptionsPage(QWizardPage):
         self.radio_full.setChecked(True)
         self.btn_group.addButton(self.radio_full, 1)
         mode_layout.addWidget(self.radio_full)
-        d2 = QLabel(tr("export_mode_full_desc"))
-        d2.setWordWrap(True)
-        d2.setStyleSheet("margin-left: 28px; color: #a6adc8; font-size: 11px;")
-        mode_layout.addWidget(d2)
+        self.desc_full = QLabel(tr("export_mode_full_desc"))
+        self.desc_full.setWordWrap(True)
+        self.desc_full.setStyleSheet("margin-left: 28px; color: #a6adc8; font-size: 11px;")
+        mode_layout.addWidget(self.desc_full)
 
         self.size_full = QLabel("")
         self.size_full.setStyleSheet("margin-left: 28px; font-weight: bold;")
         mode_layout.addWidget(self.size_full)
 
-        layout.addWidget(mode_group)
+        layout.addWidget(self.mode_group)
         layout.addSpacing(10)
 
         # Warnings
@@ -643,6 +664,15 @@ class ExportOptionsPage(QWizardPage):
         layout.addWidget(self.warn_no_files)
 
         layout.addStretch()
+
+    def retranslateUi(self):
+        self.setTitle(tr("export_options_title"))
+        self.setSubTitle(tr("export_options_desc"))
+        self.mode_group.setTitle(tr("export_mode_title"))
+        self.radio_meta.setText(tr("export_mode_metadata"))
+        self.desc_meta.setText(tr("export_mode_metadata_desc"))
+        self.radio_full.setText(tr("export_mode_full"))
+        self.desc_full.setText(tr("export_mode_full_desc"))
 
     def initializePage(self):
         games = self.game_page.selected_games
@@ -699,8 +729,8 @@ class TargetPage(QWizardPage):
         layout.setContentsMargins(30, 20, 30, 20)
 
         # Target type
-        target_group = QGroupBox(tr("target_where"))
-        target_layout = QVBoxLayout(target_group)
+        self.target_group = QGroupBox(tr("target_where"))
+        target_layout = QVBoxLayout(self.target_group)
 
         self.btn_group = QButtonGroup(self)
 
@@ -708,22 +738,22 @@ class TargetPage(QWizardPage):
         self.radio_folder.setChecked(True)
         self.btn_group.addButton(self.radio_folder, 0)
         target_layout.addWidget(self.radio_folder)
-        d1 = QLabel(tr("target_folder_desc"))
-        d1.setWordWrap(True)
-        d1.setStyleSheet("margin-left: 28px; color: #a6adc8; font-size: 11px;")
-        target_layout.addWidget(d1)
+        self.desc_folder = QLabel(tr("target_folder_desc"))
+        self.desc_folder.setWordWrap(True)
+        self.desc_folder.setStyleSheet("margin-left: 28px; color: #a6adc8; font-size: 11px;")
+        target_layout.addWidget(self.desc_folder)
 
         target_layout.addSpacing(8)
 
         self.radio_network = QRadioButton(tr("export_mode_network"))
         self.btn_group.addButton(self.radio_network, 1)
         target_layout.addWidget(self.radio_network)
-        d2 = QLabel(tr("export_mode_network_desc"))
-        d2.setWordWrap(True)
-        d2.setStyleSheet("margin-left: 28px; color: #a6adc8; font-size: 11px;")
-        target_layout.addWidget(d2)
+        self.desc_network = QLabel(tr("export_mode_network_desc"))
+        self.desc_network.setWordWrap(True)
+        self.desc_network.setStyleSheet("margin-left: 28px; color: #a6adc8; font-size: 11px;")
+        target_layout.addWidget(self.desc_network)
 
-        layout.addWidget(target_group)
+        layout.addWidget(self.target_group)
         layout.addSpacing(12)
 
         # Path selection (folder mode)
@@ -747,6 +777,18 @@ class TargetPage(QWizardPage):
         self._on_mode_changed()
 
         layout.addStretch()
+
+    def retranslateUi(self):
+        self.setTitle(tr("target_title"))
+        self.setSubTitle(tr("target_desc"))
+        self.target_group.setTitle(tr("target_where"))
+        self.radio_folder.setText(tr("target_folder"))
+        self.desc_folder.setText(tr("target_folder_desc"))
+        self.radio_network.setText(tr("export_mode_network"))
+        self.desc_network.setText(tr("export_mode_network_desc"))
+        self.path_group.setTitle(tr("export_target"))
+        self.path_edit.setPlaceholderText(tr("target_select_folder"))
+        self.btn_browse.setText(tr("browse"))
 
     def _on_mode_changed(self):
         is_folder = self.btn_group.checkedId() == 0
@@ -853,6 +895,10 @@ class ProgressPage(QWizardPage):
 
         self._worker = None
         self._server = None
+
+    def retranslateUi(self):
+        self.setTitle(tr("exporter_step_progress"))
+        self.network_group.setTitle(tr("network_title"))
 
     def initializePage(self):
         self._complete = False
@@ -996,10 +1042,21 @@ class ExporterWizard(QWizard):
         self.progress_page.setFinalPage(True)
 
         # Button text
+        self._retranslate_buttons()
+
+    def _retranslate_buttons(self):
         self.setButtonText(QWizard.NextButton, tr("next") + "  →")
         self.setButtonText(QWizard.BackButton, "←  " + tr("back"))
         self.setButtonText(QWizard.CancelButton, tr("cancel"))
         self.setButtonText(QWizard.FinishButton, tr("close"))
+
+    def retranslateAll(self):
+        self.setWindowTitle(tr("exporter_title"))
+        self._retranslate_buttons()
+        for page_id in self.pageIds():
+            page = self.page(page_id)
+            if hasattr(page, "retranslateUi"):
+                page.retranslateUi()
 
 
 # ---------------------------------------------------------------------------
