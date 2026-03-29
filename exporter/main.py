@@ -42,6 +42,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from common.i18n import tr, set_locale, detect_locale
 from common.mo2_reader import format_size
+from common.migration_format import COMPRESS_NONE, COMPRESS_LOW, COMPRESS_STRONG
 from exporter.exporter import (
     ExportableGame,
     export_games,
@@ -243,11 +244,12 @@ class ExportWorker(QThread):
     finished = Signal(str)             # result path
     error = Signal(str)
 
-    def __init__(self, games, output_dir, include_mods):
+    def __init__(self, games, output_dir, include_mods, compression=COMPRESS_LOW):
         super().__init__()
         self.games = games
         self.output_dir = output_dir
         self.include_mods = include_mods
+        self.compression = compression
 
     def run(self):
         try:
@@ -255,6 +257,7 @@ class ExportWorker(QThread):
                 self.games,
                 Path(self.output_dir),
                 include_mods=self.include_mods,
+                compression=self.compression,
                 progress=lambda s, c, t: self.progress.emit(s, c, t),
             )
             self.finished.emit(str(path))
@@ -662,6 +665,23 @@ class ExportOptionsPage(QWizardPage):
         self.size_full.setStyleSheet("margin-left: 28px; font-weight: bold;")
         mode_layout.addWidget(self.size_full)
 
+        # Compression selector (only for full export)
+        self.compress_widget = QWidget()
+        compress_layout = QHBoxLayout(self.compress_widget)
+        compress_layout.setContentsMargins(28, 4, 0, 0)
+        self.compress_label = QLabel(tr("compression_label") + ":")
+        compress_layout.addWidget(self.compress_label)
+        self.compress_combo = QComboBox()
+        self.compress_combo.addItem(tr("compression_none"), COMPRESS_NONE)
+        self.compress_combo.addItem(tr("compression_low"), COMPRESS_LOW)
+        self.compress_combo.addItem(tr("compression_strong"), COMPRESS_STRONG)
+        self.compress_combo.setCurrentIndex(1)  # Default: Low
+        compress_layout.addWidget(self.compress_combo)
+        compress_layout.addStretch()
+        mode_layout.addWidget(self.compress_widget)
+
+        self.btn_group.buttonClicked.connect(self._on_mode_changed)
+
         layout.addWidget(self.mode_group)
         layout.addSpacing(10)
 
@@ -680,6 +700,10 @@ class ExportOptionsPage(QWizardPage):
 
         layout.addStretch()
 
+    def _on_mode_changed(self):
+        is_full = self.btn_group.checkedId() == 1
+        self.compress_widget.setVisible(is_full)
+
     def retranslateUi(self):
         self.setTitle(tr("export_options_title"))
         self.setSubTitle(tr("export_options_desc"))
@@ -688,8 +712,16 @@ class ExportOptionsPage(QWizardPage):
         self.desc_meta.setText(tr("export_mode_metadata_desc"))
         self.radio_full.setText(tr("export_mode_full"))
         self.desc_full.setText(tr("export_mode_full_desc"))
+        self.compress_label.setText(tr("compression_label") + ":")
+        idx = self.compress_combo.currentIndex()
+        self.compress_combo.clear()
+        self.compress_combo.addItem(tr("compression_none"), COMPRESS_NONE)
+        self.compress_combo.addItem(tr("compression_low"), COMPRESS_LOW)
+        self.compress_combo.addItem(tr("compression_strong"), COMPRESS_STRONG)
+        self.compress_combo.setCurrentIndex(idx)
 
     def initializePage(self):
+        self._on_mode_changed()
         games = self.game_page.selected_games
         total_size = sum(g.total_size_bytes for g in games)
         total_mods = sum(g.mod_count for g in games)
@@ -725,6 +757,10 @@ class ExportOptionsPage(QWizardPage):
     @property
     def include_mods(self) -> bool:
         return self.btn_group.checkedId() == 1
+
+    @property
+    def compression(self) -> int:
+        return self.compress_combo.currentData() or COMPRESS_LOW
 
 
 # ---------------------------------------------------------------------------
@@ -923,9 +959,10 @@ class ProgressPage(QWizardPage):
         if self.target_page.is_network:
             self._start_network(games, include_mods)
         else:
-            self._start_export(games, include_mods, self.target_page.target_path)
+            compression = self.options_page.compression
+            self._start_export(games, include_mods, self.target_page.target_path, compression)
 
-    def _start_export(self, games, include_mods, target_path):
+    def _start_export(self, games, include_mods, target_path, compression=COMPRESS_LOW):
         self.network_group.hide()
         self.done_label.hide()
         self.progress_bar.show()
@@ -933,7 +970,7 @@ class ProgressPage(QWizardPage):
         self.status_label.setText(tr("progress_reading"))
         self.detail_label.setText("")
 
-        self._worker = ExportWorker(games, target_path, include_mods)
+        self._worker = ExportWorker(games, target_path, include_mods, compression)
         self._worker.progress.connect(self._on_progress)
         self._worker.finished.connect(self._on_done)
         self._worker.error.connect(self._on_error)

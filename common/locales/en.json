@@ -52,10 +52,15 @@
     "export_mode_full": "Full export (metadata + mod files)",
     "export_mode_network": "Network transfer (send directly to Linux PC)",
     "export_mode_metadata_desc": "Creates a small .gbw file (~KB) with load order, Nexus IDs, and categories. You'll need to re-download mod files on Linux.",
-    "export_mode_full_desc": "Copies all mod files + metadata to a target folder (USB drive, external HDD). Can be very large.",
+    "export_mode_full_desc": "Packs all mod files + metadata into a single .gbw archive. Can be very large.",
     "export_mode_network_desc": "Starts a local server. Your Linux PC connects over LAN and pulls the data directly.",
     "export_size_metadata": "Metadata only: {size}",
     "export_size_full": "Full export (with mods): {size}",
+    "compression_label": "Compression",
+    "compression_none": "None (fastest)",
+    "compression_low": "Low (fast, smaller)",
+    "compression_strong": "Strong (slowest, smallest)",
+
     "export_warning_no_nexus": "{count} of {total} mods have no Nexus ID \u2014 these cannot be re-downloaded automatically.",
     "export_warning_no_files": "Mod files missing for: {games}",
 

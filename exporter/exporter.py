@@ -2,19 +2,21 @@
 
 Handles export of MO2 and/or Vortex mod setups:
 1. Metadata only (.gbw files — small, mods re-downloaded on Linux)
-2. Full export  (.gbw + mod files to folder on USB / external drive)
+2. Full export  (single .gbw per game with mod files packed inside)
 3. Network transfer (handled by server.py)
 
-Supports multi-game export: each game gets its own subfolder.
+Supports multi-game export: each game gets its own .gbw file.
 """
 
-import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
 from common.mo2_reader import MO2Instance
 from common.migration_format import (
+    COMPRESS_NONE,
+    COMPRESS_LOW,
+    COMPRESS_STRONG,
     MigrationPackage,
     create_package_from_mo2,
     create_package_from_vortex,
@@ -159,24 +161,22 @@ def export_games(
     games: list[ExportableGame],
     output_dir: Path,
     include_mods: bool = False,
+    compression: int = COMPRESS_LOW,
     progress: ProgressCallback | None = None,
 ) -> Path:
     """Export one or more games to an output directory.
 
-    Creates:
+    Creates one .gbw file per game:
         output_dir/
-        ├── Game Name [MO2]/
-        │   ├── migration.gbw
-        │   └── mods/          (only if include_mods)
-        ├── Game Name [Vortex]/
-        │   ├── migration.gbw
-        │   └── mods/
+        ├── Game Name [MO2].gbw      ← metadata (+ mod files if include_mods)
+        ├── Game Name [Vortex].gbw
         ...
 
     Args:
         games: List of ExportableGame to export.
         output_dir: Target directory (USB drive, external HDD, etc.).
-        include_mods: If True, copy mod files alongside metadata.
+        include_mods: If True, pack mod files into the .gbw archive.
+        compression: COMPRESS_NONE, COMPRESS_LOW, or COMPRESS_STRONG.
         progress: Optional callback(status, current_bytes, total_bytes).
 
     Returns:
@@ -185,65 +185,49 @@ def export_games(
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Resolve duplicate folder names
-    folder_names: dict[int, str] = {}
+    # Resolve duplicate file names
+    file_names: dict[int, str] = {}
     name_count: dict[str, int] = {}
     for i, game in enumerate(games):
         base = game.safe_folder_name
         name_count[base] = name_count.get(base, 0) + 1
         if name_count[base] == 1:
-            folder_names[i] = base
+            file_names[i] = base
         else:
-            folder_names[i] = f"{base} ({name_count[base]})"
+            file_names[i] = f"{base} ({name_count[base]})"
 
     total_bytes = sum(g.total_size_bytes for g in games) if include_mods else 0
-    copied_bytes = 0
+    written_bytes = 0
 
     for i, game in enumerate(games):
-        game_dir = output_dir / folder_names[i]
-        game_dir.mkdir(parents=True, exist_ok=True)
-
-        # Save metadata (.gbw)
         package = game.create_package()
         package.manifest.has_mod_files = include_mods
-        save_gbw(package, game_dir / "migration.gbw")
+
+        mods_dir = None
+        if include_mods and game.mods_dir and game.mods_dir.is_dir():
+            mods_dir = game.mods_dir
 
         if progress:
-            progress(f"{game.game_name}: metadata", copied_bytes, total_bytes)
+            progress(f"{game.game_name}: metadata", written_bytes, total_bytes)
 
-        # Copy mod files if requested
-        if include_mods and game.mods_dir and game.mods_dir.is_dir():
-            mods_target = game_dir / "mods"
-            mods_target.mkdir(exist_ok=True)
+        def _on_file_progress(status, current, total, _game=game, _base=written_bytes):
+            if progress:
+                progress(
+                    f"{_game.game_name}: {status}",
+                    _base + current,
+                    total_bytes,
+                )
 
-            for mod in package.mods:
-                if mod.is_separator:
-                    continue
+        save_gbw(
+            package,
+            output_dir / f"{file_names[i]}.gbw",
+            mods_dir=mods_dir,
+            compression=compression,
+            progress=_on_file_progress if include_mods else None,
+        )
 
-                src_dir = game.mods_dir / mod.folder_name
-                if not src_dir.is_dir():
-                    continue
-
-                dst_dir = mods_target / mod.folder_name
-                if dst_dir.exists():
-                    shutil.rmtree(dst_dir)
-
-                for src_file in src_dir.rglob("*"):
-                    rel = src_file.relative_to(src_dir)
-                    dst_file = dst_dir / rel
-
-                    if src_file.is_dir():
-                        dst_file.mkdir(parents=True, exist_ok=True)
-                    elif src_file.is_file():
-                        dst_file.parent.mkdir(parents=True, exist_ok=True)
-                        shutil.copy2(src_file, dst_file)
-                        copied_bytes += src_file.stat().st_size
-                        if progress:
-                            progress(
-                                f"{game.game_name}: {mod.display_name}/{rel}",
-                                copied_bytes,
-                                total_bytes,
-                            )
+        if include_mods:
+            written_bytes += game.total_size_bytes
 
     return output_dir
 
@@ -261,45 +245,20 @@ def export_metadata(instance: MO2Instance, output_path: Path) -> Path:
 
 def export_full(
     instance: MO2Instance,
-    output_dir: Path,
+    output_path: Path,
+    compression: int = COMPRESS_LOW,
     progress: ProgressCallback | None = None,
 ) -> Path:
-    """Export metadata + all mod files to a folder."""
-    output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
+    """Export metadata + all mod files as a single .gbw archive."""
     package = create_package_from_mo2(instance)
     package.manifest.has_mod_files = True
-    save_gbw(package, output_dir / "migration.gbw")
-
-    mods_target = output_dir / "mods"
-    mods_target.mkdir(exist_ok=True)
-
-    total_bytes = sum(m.size_bytes for m in package.mods if not m.is_separator)
-    copied_bytes = 0
-
-    for mod in package.mods:
-        if mod.is_separator:
-            continue
-        src_dir = instance.mods_dir / mod.folder_name
-        if not src_dir.exists():
-            continue
-        dst_dir = mods_target / mod.folder_name
-        if dst_dir.exists():
-            shutil.rmtree(dst_dir)
-        for src_file in src_dir.rglob("*"):
-            rel = src_file.relative_to(src_dir)
-            dst_file = dst_dir / rel
-            if src_file.is_dir():
-                dst_file.mkdir(parents=True, exist_ok=True)
-            elif src_file.is_file():
-                dst_file.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(src_file, dst_file)
-                copied_bytes += src_file.stat().st_size
-                if progress:
-                    progress(f"{mod.display_name}/{rel}", copied_bytes, total_bytes)
-
-    return output_dir
+    return save_gbw(
+        package,
+        output_path,
+        mods_dir=instance.mods_dir,
+        compression=compression,
+        progress=progress,
+    )
 
 
 def get_export_summary(instance: MO2Instance) -> dict:

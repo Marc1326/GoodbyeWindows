@@ -4,14 +4,10 @@ A .gbw file is a ZIP archive containing:
 - manifest.json  — Tool version, source manager, game info
 - mods.json      — List of all mods with metadata
 - profiles.json  — Profile data (load orders, enabled states)
+- mods/          — (optional) actual mod files when full export is used
 
-When full export is used, mod files are stored alongside in a folder structure:
-  export_dir/
-  ├── migration.gbw        ← metadata
-  └── mods/                ← actual mod files
-      ├── ModName1/
-      ├── ModName2/
-      └── ...
+Full export packs everything into a single .gbw:
+  Skyrim [MO2].gbw  ← metadata + all mod files inside
 """
 
 import json
@@ -19,11 +15,27 @@ import zipfile
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Callable
 
-FORMAT_VERSION = 1
+FORMAT_VERSION = 2
 TOOL_NAME = "GoodbyeWindows"
 TOOL_VERSION = "1.0.0"
 GBW_EXTENSION = ".gbw"
+
+# Compression levels
+COMPRESS_NONE = 0    # ZIP_STORED — fastest, no compression
+COMPRESS_LOW = 1     # ZIP_DEFLATED level 1 — fast, some compression
+COMPRESS_STRONG = 2  # ZIP_DEFLATED level 9 — smallest, slowest
+
+
+def _zip_params(compression: int) -> dict:
+    """Return zipfile.ZipFile kwargs for the given compression level."""
+    if compression == COMPRESS_NONE:
+        return {"compression": zipfile.ZIP_STORED}
+    elif compression == COMPRESS_LOW:
+        return {"compression": zipfile.ZIP_DEFLATED, "compresslevel": 1}
+    else:
+        return {"compression": zipfile.ZIP_DEFLATED, "compresslevel": 9}
 
 
 @dataclass
@@ -189,8 +201,21 @@ def create_package_from_mo2(instance) -> MigrationPackage:
     return package
 
 
-def save_gbw(package: MigrationPackage, output_path: Path) -> Path:
+def save_gbw(
+    package: MigrationPackage,
+    output_path: Path,
+    mods_dir: Path | None = None,
+    compression: int = COMPRESS_LOW,
+    progress: Callable[[str, int, int], None] | None = None,
+) -> Path:
     """Save a migration package as a .gbw file.
+
+    Args:
+        package: The migration package.
+        output_path: Target .gbw path.
+        mods_dir: If provided, include mod files from this directory.
+        compression: COMPRESS_NONE, COMPRESS_LOW, or COMPRESS_STRONG.
+        progress: Optional callback(status, current_bytes, total_bytes).
 
     Returns the path to the created file.
     """
@@ -198,7 +223,13 @@ def save_gbw(package: MigrationPackage, output_path: Path) -> Path:
     if not output_path.suffix:
         output_path = output_path.with_suffix(GBW_EXTENSION)
 
-    with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zf:
+    if mods_dir is not None:
+        package.manifest.has_mod_files = True
+
+    zip_kw = _zip_params(compression)
+
+    with zipfile.ZipFile(output_path, "w", **zip_kw) as zf:
+        # Metadata (always deflated for small JSON)
         zf.writestr("manifest.json", json.dumps(
             asdict(package.manifest), indent=2, ensure_ascii=False
         ))
@@ -208,6 +239,34 @@ def save_gbw(package: MigrationPackage, output_path: Path) -> Path:
         zf.writestr("profiles.json", json.dumps(
             [asdict(p) for p in package.profiles], indent=2, ensure_ascii=False
         ))
+
+        # Mod files
+        if mods_dir is not None and mods_dir.is_dir():
+            total_bytes = sum(
+                m.size_bytes for m in package.mods if not m.is_separator
+            )
+            written_bytes = 0
+
+            for mod in package.mods:
+                if mod.is_separator:
+                    continue
+                src_dir = mods_dir / mod.folder_name
+                if not src_dir.is_dir():
+                    continue
+
+                for src_file in src_dir.rglob("*"):
+                    if not src_file.is_file():
+                        continue
+                    rel = src_file.relative_to(mods_dir)
+                    arcname = f"mods/{rel}"
+                    zf.write(src_file, arcname)
+                    written_bytes += src_file.stat().st_size
+                    if progress:
+                        progress(
+                            f"{mod.display_name}/{src_file.name}",
+                            written_bytes,
+                            total_bytes,
+                        )
 
     return output_path
 
@@ -253,3 +312,51 @@ def load_gbw(gbw_path: Path) -> MigrationPackage:
             }))
 
     return package
+
+
+def gbw_has_mods(gbw_path: Path) -> bool:
+    """Quick check whether a .gbw file contains mod files."""
+    with zipfile.ZipFile(gbw_path, "r") as zf:
+        return any(n.startswith("mods/") for n in zf.namelist())
+
+
+def extract_mods_from_gbw(
+    gbw_path: Path,
+    target_dir: Path,
+    progress: Callable[[str, int, int], None] | None = None,
+) -> Path:
+    """Extract mod files from a .gbw archive to a directory.
+
+    Returns the path to the mods directory (target_dir/mods/).
+    """
+    gbw_path = Path(gbw_path)
+    target_dir = Path(target_dir)
+    mods_out = target_dir / "mods"
+    mods_out.mkdir(parents=True, exist_ok=True)
+
+    with zipfile.ZipFile(gbw_path, "r") as zf:
+        mod_entries = [n for n in zf.namelist() if n.startswith("mods/")]
+        total_bytes = sum(zf.getinfo(n).file_size for n in mod_entries)
+        extracted_bytes = 0
+
+        for name in mod_entries:
+            info = zf.getinfo(name)
+            if info.is_dir():
+                (target_dir / name).mkdir(parents=True, exist_ok=True)
+                continue
+
+            target_file = target_dir / name
+            target_file.parent.mkdir(parents=True, exist_ok=True)
+            with zf.open(name) as src, open(target_file, "wb") as dst:
+                while True:
+                    chunk = src.read(1024 * 256)
+                    if not chunk:
+                        break
+                    dst.write(chunk)
+                    extracted_bytes += len(chunk)
+
+            if progress:
+                short_name = "/".join(name.split("/")[-2:])
+                progress(short_name, extracted_bytes, total_bytes)
+
+    return mods_out

@@ -49,6 +49,8 @@ from common.migration_format import (
     MigrationManifest,
     load_gbw,
     peek_gbw_manifest,
+    gbw_has_mods,
+    extract_mods_from_gbw,
     create_package_from_mo2,
 )
 from hellolinux.detector import (
@@ -544,11 +546,16 @@ class SourcePage(QWizardPage):
         try:
             p = Path(path)
             if mode == 0:
-                # Single .gbw file
+                # Single .gbw file — check if mod files are embedded
                 package = load_gbw(p)
+                mod_source = None
+                if gbw_has_mods(p):
+                    tmp = Path(tempfile.mkdtemp(prefix="gbw_mods_"))
+                    mod_source = extract_mods_from_gbw(p, tmp)
                 self._games.append(ImportableGame(
                     game_name=package.manifest.game_name or "Unknown",
                     package=package,
+                    mod_source_dir=mod_source,
                 ))
             elif mode == 1:
                 # Folder: check for multi-game or single-game export
@@ -580,9 +587,29 @@ class SourcePage(QWizardPage):
         self.status_label.style().polish(self.status_label)
         self.completeChanged.emit()
 
+    def _load_gbw_file(self, gbw_path: Path):
+        """Load a .gbw and extract mods if embedded."""
+        package = load_gbw(gbw_path)
+        mod_source = None
+        if gbw_has_mods(gbw_path):
+            tmp = Path(tempfile.mkdtemp(prefix="gbw_mods_"))
+            mod_source = extract_mods_from_gbw(gbw_path, tmp)
+        self._games.append(ImportableGame(
+            game_name=package.manifest.game_name or gbw_path.stem,
+            package=package,
+            mod_source_dir=mod_source,
+        ))
+
     def _scan_export_folder(self, folder: Path):
-        """Scan a folder for migration.gbw files (single or multi-game)."""
-        # Direct: folder/migration.gbw
+        """Scan a folder for .gbw files (new format) or migration.gbw (old format)."""
+        # New format: folder/*.gbw (one file per game, mods inside)
+        gbw_files = sorted(folder.glob("*.gbw"))
+        if gbw_files:
+            for gbw in gbw_files:
+                self._load_gbw_file(gbw)
+            return
+
+        # Old format: folder/migration.gbw + mods/
         direct_gbw = folder / "migration.gbw"
         if direct_gbw.exists():
             package = load_gbw(direct_gbw)
@@ -594,7 +621,7 @@ class SourcePage(QWizardPage):
             ))
             return
 
-        # Multi-game: folder/*/migration.gbw
+        # Old multi-game format: folder/*/migration.gbw
         for sub in sorted(folder.iterdir()):
             if not sub.is_dir():
                 continue
