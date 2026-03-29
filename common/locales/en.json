@@ -91,6 +91,9 @@
     "progress_done": "Export complete!",
     "progress_files": "{current} / {total} files",
     "progress_size": "{current} / {total}",
+    "progress_time": "{elapsed}  —  {speed}/s  —  ~{remaining} remaining",
+    "progress_elapsed": "Elapsed: {elapsed}",
+    "progress_total_time": "Total time: {time}",
 
     "done_title": "Export Complete!",
     "done_metadata": "Migration file saved to:\n{path}",

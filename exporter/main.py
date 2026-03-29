@@ -10,6 +10,7 @@ Wizard-style interface (6 pages):
 """
 
 import sys
+import time
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QThread, Signal
@@ -922,6 +923,11 @@ class ProgressPage(QWizardPage):
         self.detail_label.setStyleSheet("color: #a6adc8; font-size: 11px;")
         layout.addWidget(self.detail_label)
 
+        # Time / speed info
+        self.time_label = QLabel("")
+        self.time_label.setStyleSheet("color: #bac2de; font-size: 12px; margin-top: 4px;")
+        layout.addWidget(self.time_label)
+
         layout.addSpacing(16)
 
         # Network mode widgets
@@ -969,6 +975,8 @@ class ProgressPage(QWizardPage):
         self.progress_bar.setValue(0)
         self.status_label.setText(tr("progress_reading"))
         self.detail_label.setText("")
+        self.time_label.setText("")
+        self._start_time = time.time()
 
         self._worker = ExportWorker(games, target_path, include_mods, compression)
         self._worker.progress.connect(self._on_progress)
@@ -1008,6 +1016,17 @@ class ProgressPage(QWizardPage):
         self.net_status.setText(tr("network_waiting"))
         self.status_label.setText(tr("network_instructions"))
 
+    @staticmethod
+    def _fmt_time(seconds: float) -> str:
+        s = int(seconds)
+        if s < 60:
+            return f"{s}s"
+        m, s = divmod(s, 60)
+        if m < 60:
+            return f"{m:02d}:{s:02d}"
+        h, m = divmod(m, 60)
+        return f"{h}:{m:02d}:{s:02d}"
+
     def _on_progress(self, status, current, total):
         if total > 0:
             pct = int(current / total * 100)
@@ -1017,11 +1036,29 @@ class ProgressPage(QWizardPage):
             tr("progress_size", current=format_size(current), total=format_size(total))
         )
 
+        # Time display
+        elapsed = time.time() - self._start_time
+        if current > 0 and total > 0 and elapsed > 1:
+            speed = current / elapsed
+            remaining = (total - current) / speed if speed > 0 else 0
+            self.time_label.setText(
+                tr("progress_time",
+                   elapsed=self._fmt_time(elapsed),
+                   speed=format_size(int(speed)),
+                   remaining=self._fmt_time(remaining))
+            )
+        elif elapsed > 1:
+            self.time_label.setText(
+                tr("progress_elapsed", elapsed=self._fmt_time(elapsed))
+            )
+
     def _on_done(self, path):
         self._complete = True
         self.progress_bar.setValue(100)
+        elapsed = time.time() - self._start_time
         self.status_label.setText(tr("progress_done"))
         self.detail_label.setText("")
+        self.time_label.setText(tr("progress_total_time", time=self._fmt_time(elapsed)))
         self.done_label.setText(
             tr("done_full", path=path) + "\n\n" + tr("done_next_steps") + "\n"
             + tr("done_step1_full") + "\n" + tr("done_step2") + "\n" + tr("done_step3")
