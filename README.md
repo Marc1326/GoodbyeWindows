@@ -2,7 +2,7 @@
 
 **Mod Migration Toolkit — Move your mod setup from Windows to Linux.**
 
-GoodbyeWindows helps you transfer your Mod Organizer 2 (MO2) mod setup from Windows to Linux. It consists of two tools:
+GoodbyeWindows helps you transfer your Mod Organizer 2 (MO2) or Vortex mod setup from Windows to Linux. It consists of two tools:
 
 - **Exporter** (Windows) — Scans your MO2 instances and exports metadata + mod files
 - **Importer** (Linux) — Imports into [Anvil Organizer](https://github.com/Marc1326/Anvil-Organizer) or [Amethyst Mod Manager](https://github.com/Jerem584/amethyst-mod-manager)
@@ -10,6 +10,7 @@ GoodbyeWindows helps you transfer your Mod Organizer 2 (MO2) mod setup from Wind
 ## Features
 
 - Full MO2 instance scanning (Registry, AppData, common paths)
+- Vortex Mod Manager support (Experimental — not fully tested)
 - Preserves load order, profiles, categories, and Nexus IDs
 - Three export modes:
   - **Metadata only** (.gbw file) — small file, re-download mods on Linux
@@ -71,24 +72,20 @@ Run the GoodbyeWindows Importer on your Linux PC. It reads the migration data an
 
 ## .gbw Format
 
-A `.gbw` file is a ZIP archive:
+A `.gbw` file is a ZIP archive (v2):
 
 ```
-migration.gbw
+GameName [MO2].gbw
 ├── manifest.json    ← game info, mod count, total size
 ├── mods.json        ← mod metadata (names, Nexus IDs, versions)
-└── profiles.json    ← load orders and enabled states
-```
-
-For full exports:
-```
-export_folder/
-├── migration.gbw    ← metadata
-└── mods/            ← actual mod files
+├── profiles.json    ← load orders and enabled states
+└── mods/            ← (optional) actual mod files for full export
     ├── ModName1/
     ├── ModName2/
     └── ...
 ```
+
+Metadata-only exports contain just the JSON files (~KB). Full exports pack all mod files into the same `.gbw` archive with selectable compression (None, Low, Strong).
 
 ## Network Transfer
 
