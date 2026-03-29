@@ -82,6 +82,58 @@ class MigrationPackage:
     profiles: list[MigrationProfile] = field(default_factory=list)
 
 
+def create_package_from_vortex(game) -> MigrationPackage:
+    """Create a MigrationPackage from a VortexGame.
+
+    Args:
+        game: A vortex_reader.VortexGame object (one game from a VortexInstance).
+    """
+    from .vortex_reader import nexus_slug_from_vortex
+
+    package = MigrationPackage()
+
+    # Manifest
+    package.manifest.source_manager = "Vortex"
+    package.manifest.source_path = game.staging_folder
+    package.manifest.game_name = game.name
+    package.manifest.game_path = game.game_path
+    package.manifest.nexus_game_slug = nexus_slug_from_vortex(game.game_id)
+    package.manifest.mod_count = game.mod_count
+    package.manifest.total_size_bytes = game.total_size
+
+    # Mods
+    for mod in game.mods.values():
+        package.mods.append(MigrationMod(
+            folder_name=mod.folder_name,
+            display_name=mod.display_name,
+            nexus_id=mod.nexus_id,
+            version=mod.version,
+            author=mod.author,
+            url=mod.url,
+            category_ids=list(mod.category_ids),
+            repository="Nexus",
+            game_name=game.name,
+            installation_file=mod.installation_file,
+            description=mod.description,
+            is_separator=False,
+            color="",
+            enabled=mod.enabled,
+            size_bytes=mod.size_bytes,
+        ))
+
+    # Profiles
+    for profile in game.profiles:
+        package.profiles.append(MigrationProfile(
+            name=profile.name,
+            mods=[
+                {"name": mid, "enabled": enabled}
+                for mid, enabled in profile.mod_state.items()
+            ],
+        ))
+
+    return package
+
+
 def create_package_from_mo2(instance) -> MigrationPackage:
     """Create a MigrationPackage from an MO2Instance.
 
