@@ -18,7 +18,7 @@ def build(target: str):
         name = "GoodbyeWindows-Exporter"
     elif target == "hellolinux":
         entry = root / "hellolinux" / "main.py"
-        name = "HelloLinux-Importer"
+        name = "HelloLinux"
     else:
         print(f"Unknown target: {target}")
         sys.exit(1)

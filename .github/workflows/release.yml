@@ -59,7 +59,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: linux-appimage
-          path: dist/GoodbyeWindows-Importer-x86_64.AppImage
+          path: dist/HelloLinux-x86_64.AppImage
 
   release:
     needs: [build-windows, build-linux]
@@ -82,7 +82,7 @@ jobs:
         with:
           files: |
             artifacts/GoodbyeWindows-Exporter.exe
-            artifacts/GoodbyeWindows-Importer-x86_64.AppImage
+            artifacts/HelloLinux-x86_64.AppImage
           body: |
             ## GoodbyeWindows v1.0.0
 
@@ -93,7 +93,7 @@ jobs:
             | File | Platform | Description |
             |------|----------|-------------|
             | `GoodbyeWindows-Exporter.exe` | Windows | Export your MO2 mod setup |
-            | `GoodbyeWindows-Importer-x86_64.AppImage` | Linux | Import into Anvil Organizer |
+            | `HelloLinux-x86_64.AppImage` | Linux | Import into Anvil Organizer |
 
             ### Features
             - MO2 export with full mod files or metadata-only
