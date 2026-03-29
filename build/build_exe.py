@@ -23,12 +23,14 @@ def build(target: str):
         print(f"Unknown target: {target}")
         sys.exit(1)
 
+    sep = ";" if sys.platform == "win32" else ":"
+
     cmd = [
         sys.executable, "-m", "PyInstaller",
         "--onefile",
         "--windowed",
         f"--name={name}",
-        f"--add-data={root / 'common' / 'locales'}:common/locales",
+        f"--add-data={root / 'common' / 'locales'}{sep}common/locales",
         str(entry),
     ]
 
