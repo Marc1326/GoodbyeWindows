@@ -1,9 +1,10 @@
-"""GoodbyeWindows — MO2 Instance Scanner (Windows).
+"""GoodbyeWindows — MO2 Instance Scanner.
 
 Finds MO2 portable instances by scanning:
 1. Windows Registry (HKCU\\Software\\Mod Organizer Team)
 2. Common installation paths
 3. All drive roots
+4. Wine/Proton prefixes (Steam compatdata, ~/.wine)
 """
 
 import os
@@ -104,6 +105,68 @@ def scan_common_paths() -> list[Path]:
     return paths
 
 
+def scan_wine_prefixes() -> list[Path]:
+    """Scan Wine/Proton prefixes for MO2 instances.
+
+    Checks Steam compatdata (Proton) and ~/.wine for MO2
+    installed via tools like NaK-Linux-Modding-Helper.
+    """
+    paths = []
+    if sys.platform == "win32":
+        return paths
+
+    home = Path.home()
+
+    # Steam Proton compatdata directories
+    steam_dirs = [
+        home / ".local/share/Steam/steamapps/compatdata",
+        home / ".steam/steam/steamapps/compatdata",
+    ]
+
+    for steam_dir in steam_dirs:
+        if not steam_dir.exists():
+            continue
+        try:
+            for app_id in steam_dir.iterdir():
+                if not app_id.is_dir():
+                    continue
+                mo2_appdata = (
+                    app_id / "pfx" / "drive_c" / "users" / "steamuser"
+                    / "AppData" / "Local" / "ModOrganizer"
+                )
+                if not mo2_appdata.exists():
+                    continue
+                # Top-level ModOrganizer.ini (single-game setup)
+                if (mo2_appdata / "ModOrganizer.ini").exists():
+                    paths.append(mo2_appdata)
+                # Game-specific subdirectories (multi-game setup)
+                for sub in mo2_appdata.iterdir():
+                    if sub.is_dir() and (sub / "ModOrganizer.ini").exists():
+                        paths.append(sub)
+        except PermissionError:
+            continue
+
+    # Standard Wine prefix (~/.wine)
+    try:
+        wine_users = home / ".wine" / "drive_c" / "users"
+        if wine_users.exists():
+            for user_dir in wine_users.iterdir():
+                if not user_dir.is_dir():
+                    continue
+                mo2_appdata = user_dir / "AppData" / "Local" / "ModOrganizer"
+                if not mo2_appdata.exists():
+                    continue
+                if (mo2_appdata / "ModOrganizer.ini").exists():
+                    paths.append(mo2_appdata)
+                for sub in mo2_appdata.iterdir():
+                    if sub.is_dir() and (sub / "ModOrganizer.ini").exists():
+                        paths.append(sub)
+    except PermissionError:
+        pass
+
+    return paths
+
+
 def scan_appdata() -> list[Path]:
     """Scan MO2 AppData location for instance references."""
     paths = []
@@ -144,6 +207,8 @@ def find_all_instances() -> list[MO2Instance]:
     for p in scan_common_paths():
         candidate_paths.add(p.resolve())
     for p in scan_appdata():
+        candidate_paths.add(p.resolve())
+    for p in scan_wine_prefixes():
         candidate_paths.add(p.resolve())
 
     # Scan each candidate
