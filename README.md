@@ -5,7 +5,7 @@
 GoodbyeWindows helps you transfer your Mod Organizer 2 (MO2) or Vortex mod setup from Windows to Linux. It consists of two tools:
 
 - **Exporter** (Windows) — Scans your MO2 instances and exports metadata + mod files
-- **Importer** (Linux) — Imports into [Anvil Organizer](https://github.com/Marc1326/Anvil-Organizer) or [Amethyst Mod Manager](https://github.com/Jerem584/amethyst-mod-manager)
+- **Importer** (Linux) — Imports into [Anvil Organizer](https://github.com/Marc1326/Anvil-Organizer) 
 
 <p align="center">
   <img src="docs/screenshots/exporter-welcome.png" width="400" alt="GoodbyeWindows Exporter">
