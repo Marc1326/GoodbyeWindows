@@ -1,0 +1,110 @@
+name: Build Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install PySide6 pyinstaller
+
+      - name: Build .exe
+        run: python build/build_exe.py exporter
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-exe
+          path: dist/GoodbyeWindows-Exporter.exe
+
+  build-linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxcb-cursor0 libxkbcommon0 libegl1 libfuse2
+
+      - name: Install Python dependencies
+        run: pip install PySide6 pyinstaller
+
+      - name: Download appimagetool
+        run: |
+          wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool-x86_64.AppImage
+          sudo mv appimagetool-x86_64.AppImage /usr/local/bin/appimagetool
+
+      - name: Build AppImage
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+        run: |
+          chmod +x build/build_appimage.sh
+          ./build/build_appimage.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-appimage
+          path: dist/GoodbyeWindows-Importer-x86_64.AppImage
+
+  release:
+    needs: [build-windows, build-linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-exe
+          path: artifacts/
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-appimage
+          path: artifacts/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/GoodbyeWindows-Exporter.exe
+            artifacts/GoodbyeWindows-Importer-x86_64.AppImage
+          body: |
+            ## GoodbyeWindows v1.0.0
+
+            Migrate your mod setup from Windows (MO2) to Linux (Anvil Organizer).
+
+            ### Downloads
+
+            | File | Platform | Description |
+            |------|----------|-------------|
+            | `GoodbyeWindows-Exporter.exe` | Windows | Export your MO2 mod setup |
+            | `GoodbyeWindows-Importer-x86_64.AppImage` | Linux | Import into Anvil Organizer |
+
+            ### Features
+            - MO2 export with full mod files or metadata-only
+            - Vortex support (experimental)
+            - Network transfer (LAN)
+            - Compression options (none / low / strong)
+            - Time display with speed and ETA
+            - 7 languages: EN, DE, ES, FR, IT, PT, RU
+
+            ### Usage
+            1. **Windows:** Run `GoodbyeWindows-Exporter.exe` → export your mods
+            2. **Transfer:** Copy `.gbw` file to Linux (USB, cloud, or LAN)
+            3. **Linux:** `chmod +x` the AppImage → run → import into Anvil Organizer
+          draft: false
